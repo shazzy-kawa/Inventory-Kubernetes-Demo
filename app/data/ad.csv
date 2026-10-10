@@ -1,0 +1,9 @@
+hostname
+SRV-APP01.corp.example
+SRV-APP02.corp.example
+SRV-DB01.corp.example
+SRV-DB02.corp.example
+SRV-WEB01.corp.example
+SRV-WEB02.corp.example
+SRV-FILE01.corp.example
+SRV-OLD01.corp.example

@@ -1,0 +1,55 @@
+# Stage 3: build, push to ACR, deploy to AKS.
+# Replace the <placeholders> and create two service connections in Azure DevOps.
+trigger:
+  branches:
+    include: [main]
+
+variables:
+  acrName: '<your-acr-name>'
+  imageRepo: 'inventory'
+  aksResourceGroup: 'rg-k8slearn'
+  aksCluster: 'aks-k8slearn'
+  azureSubscription: '<azure-service-connection-name>'
+
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildPush
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - task: AzureCLI@2
+            displayName: Build and push image with ACR Tasks
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az acr build --registry $(acrName) \
+                  --image $(imageRepo):$(Build.BuildId) app/
+
+  - stage: Deploy
+    dependsOn: Build
+    jobs:
+      - deployment: DeployAKS
+        pool: { vmImage: ubuntu-latest }
+        environment: aks-demo
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Deploy to AKS and verify rollout
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az aks get-credentials -g $(aksResourceGroup) -n $(aksCluster) --overwrite-existing
+                      kubectl apply -f k8s/namespace.yaml -f k8s/configmap.yaml -f k8s/service.yaml
+                      sed "s#image: inventory:0.1#image: $(acrName).azurecr.io/$(imageRepo):$(Build.BuildId)#" k8s/deployment.yaml | kubectl apply -f -
+                      kubectl -n inventory-demo rollout status deployment/inventory --timeout=120s || {
+                        echo "Rollout failed - rolling back"
+                        kubectl -n inventory-demo rollout undo deployment/inventory
+                        exit 1
+                      }

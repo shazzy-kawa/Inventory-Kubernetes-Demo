@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estate Inventory Check</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; padding: 0 1rem; color: #1f2937; }
+    h1 { margin-bottom: .25rem; }
+    .env { color: #6b7280; margin-bottom: 1.5rem; }
+    .cards { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .card { border: 1px solid #d1d5db; border-radius: 8px; padding: .75rem 1rem; min-width: 8rem; text-decoration: none; color: inherit; }
+    .card b { display: block; font-size: 1.6rem; }
+    .card.bad { border-color: #dc2626; }
+    .card.active { background: #eff6ff; border-color: #2563eb; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f3f4f6; }
+    .yes { color: #15803d; } .no { color: #b91c1c; font-weight: 600; }
+    footer { margin-top: 2rem; color: #6b7280; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <h1>Estate Inventory Check</h1>
+  <div class="env">Environment: {{ env }} &middot; Served by pod: {{ pod }}</div>
+
+  <div class="cards">
+    <a class="card {{ 'active' if not selected }}" href="/"><b>{{ total }}</b>Total servers</a>
+    {% for s in sources %}
+    <a class="card {{ 'bad' if missing[s] }} {{ 'active' if selected == s }}" href="/?missing={{ s }}">
+      <b>{{ missing[s] }}</b>Missing from {{ s | upper }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <table>
+    <tr><th>Server</th>{% for s in sources %}<th>{{ s | upper }}</th>{% endfor %}</tr>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.host }}</td>
+      {% for s in sources %}
+      <td class="{{ 'yes' if row[s] else 'no' }}">{{ 'Yes' if row[s] else 'MISSING' }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+
+  <footer>Fictional demo data. JSON: <a href="/summary">/summary</a> &middot; <a href="/servers">/servers</a></footer>
+</body>
+</html>
